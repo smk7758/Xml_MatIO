@@ -2,6 +2,8 @@ package com.github.smk7758.Xml_Mat;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
@@ -16,26 +18,14 @@ public class Main {
 	}
 
 	public static void main(String[] args) {
-		outputTest0();
+		Map<String, Mat> mats = new HashMap<>();
+		mats.put("marker", Imgcodecs.imread("F:\\users\\smk7758\\Desktop\\marker_2018-12-01.png"));
+		mats.put("smk7758", Imgcodecs.imread("F:\\users\\smk7758\\Desktop\\smk7758.png"));
 
-		Mat mat = inputTest();
+		MatIO.exportMat(mats, filePath);
 
-		outputTest1(mat);
+		Map<String, Mat> mats_ = MatIO.loadMat(filePath);
+		mats_.forEach((name, mat) -> System.out.println(name));
 	}
 
-	public static Mat inputTest() {
-		return MatIO.loadMat(filePath);
-	}
-
-	public static void outputTest1(Mat mat) {
-		MatIO.exportMat(mat, filePath);
-	}
-
-	public static void outputTest0() {
-		// Output
-		String testImagePathString = "F:\\users\\smk7758\\Desktop\\smk7758.png";
-		Mat testMat = Imgcodecs.imread(testImagePathString);
-		System.out.println(testMat.dump());
-		MatIO.exportMat(testMat, filePath);
-	}
 }

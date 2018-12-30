@@ -4,6 +4,9 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -19,15 +22,28 @@ import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 public class MatIO {
-	public static Mat loadMat(Path filePath) {
+	public static Map<String, Mat> loadMat(Path filePath) {
 		Document document = getDocument(filePath);
 		Element root = document.getDocumentElement();
 
-		NodeList matDataRoot = root.getElementsByTagName("MatData");
+		NodeList rootNodeList = root.getChildNodes();
+		Map<String, Mat> mats = new HashMap<>();
+		for (int i = 0; i < rootNodeList.getLength(); i++) {
+			if (rootNodeList.item(i).getNodeType() == Node.ELEMENT_NODE) {
+				mats.put(rootNodeList.item(i).getNodeName(), getMat(root, rootNodeList.item(i).getNodeName()));
+			}
+		}
+
+		return mats;
+	}
+
+	private static Mat getMat(Element root, String matName) {
+		NodeList matDataRoot = root.getElementsByTagName(matName);
 		Element matDataElement = (Element) matDataRoot.item(0);
 		final int rows = Integer.valueOf(matDataElement.getAttribute("rows"));
 		final int cols = Integer.valueOf(matDataElement.getAttribute("cols"));
@@ -75,26 +91,33 @@ public class MatIO {
 		return document;
 	}
 
-	public static void exportMat(Mat mat, Path filePath) {
+	public static void exportMat(Map<String, Mat> mats, Path filePath) {
 		try {
 			Document document = getDocument();
 
 			Element root = document.createElement("root");
 			document.appendChild(root);
 
-			Element matData = document.createElement("MatData");
-			matData.setAttribute("rows", String.valueOf(mat.rows()));
-			matData.setAttribute("cols", String.valueOf(mat.cols()));
-			matData.setAttribute("channels", String.valueOf(mat.channels()));
-			matData.setAttribute("dims", String.valueOf(mat.dims()));
-			matData.setTextContent(mat.dump());
-			root.appendChild(matData);
+			for (Entry<String, Mat> entryMat : mats.entrySet()) {
+				final Element matData = setMat(document, entryMat.getKey(), entryMat.getValue());
+				root.appendChild(matData);
+			}
 
 			BufferedWriter bw = Files.newBufferedWriter(filePath);
 			outputDocument(document, new StreamResult(bw));
 		} catch (IOException ex) {
 			ex.printStackTrace();
 		}
+	}
+
+	private static Element setMat(Document document, String matName, Mat mat) {
+		Element matData = document.createElement(matName);
+		matData.setAttribute("rows", String.valueOf(mat.rows()));
+		matData.setAttribute("cols", String.valueOf(mat.cols()));
+		matData.setAttribute("channels", String.valueOf(mat.channels()));
+		matData.setAttribute("dims", String.valueOf(mat.dims()));
+		matData.setTextContent(mat.dump());
+		return matData;
 	}
 
 	private static Document getDocument() {
